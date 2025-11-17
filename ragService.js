@@ -521,7 +521,16 @@ IMPORTANT : Réponds comme un formateur bienveillant, pas comme un robot. Sois p
     };
 
   } catch (error) {
-    console.error('❌ Error with o4-mini:', error);
+    console.error('❌ [Backend RAG] Error with o4-mini:', error);
+    console.error('❌ [Backend RAG] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // Log the context that was sent
+    console.error('❌ [Backend RAG] Contexts sent:', contexts.length);
+    console.error('❌ [Backend RAG] Question was:', question);
 
     // Fallback to safe response
     return {
@@ -574,21 +583,33 @@ function analyzeConfidence(responseText) {
  */
 async function ask(question, history = []) {
   try {
-    console.log(`🔍 Recherche de contexte pour: "${question}"`);
+    console.log(`🔍 [Backend RAG] Recherche de contexte pour: "${question}"`);
+    console.log(`🔍 [Backend RAG] History length:`, history.length);
 
     // Search for relevant context
     const contexts = await searchContext(question);
 
-    console.log(`📚 ${contexts.length} contextes trouvés`);
-    console.log(`Scores: ${contexts.map(c => c.score.toFixed(3)).join(', ')}`);
+    console.log(`📚 [Backend RAG] ${contexts.length} contextes trouvés`);
+    console.log(`📚 [Backend RAG] Scores: ${contexts.map(c => c.score.toFixed(3)).join(', ')}`);
+
+    if (contexts.length === 0) {
+      console.warn('⚠️ [Backend RAG] NO CONTEXT FOUND for question:', question);
+    }
 
     // Generate answer
+    console.log('🤖 [Backend RAG] Generating answer with o4-mini...');
     const answer = await generateAnswer(question, contexts, history);
 
+    console.log('✅ [Backend RAG] Answer generated successfully');
+    console.log('✅ [Backend RAG] Confidence:', answer.confidence);
+    
     return answer;
 
   } catch (error) {
-    console.error('❌ Erreur RAG:', error);
+    console.error('❌ [Backend RAG] Erreur RAG:', error);
+    console.error('❌ [Backend RAG] Error name:', error.name);
+    console.error('❌ [Backend RAG] Error message:', error.message);
+    console.error('❌ [Backend RAG] Error stack:', error.stack);
 
     // Fallback response
     return {
